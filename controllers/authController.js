@@ -1,3 +1,4 @@
+const bcrypt = require('bcrypt');
 const User = require('../models/userModel'); 
 
 const register = async(req,res) => {
@@ -13,11 +14,27 @@ const register = async(req,res) => {
                     message : "Email allready exits !!!" 
                 });
             }
-
-            if(password) {
-
-            }
         }
+
+        let hashedPassword;
+        try {
+            hashedPassword = await bcrypt.hash(password,10);
+        } catch (error) {
+            return res.status(500).json({
+                success : false,
+                message : "Error Encountered in Hashing Password!!!"
+            })
+        }
+
+        const user = await User.create({
+            name,email,password:hashedPassword,role
+        })
+
+        res.status(200).json({
+            success : true,
+            data:user,
+            message:"User Created Succesfully !!!"
+        })
     } catch (error) {
         res.status(404).json({
             success : false,
