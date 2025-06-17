@@ -1,5 +1,7 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/userModel'); 
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 const register = async(req,res) => {
     try {
@@ -9,7 +11,7 @@ const register = async(req,res) => {
         if(email) {
             const findEmail = await User.findOne({email});
             if(findEmail) {
-                res.status(409).json({
+                return res.status(409).json({
                     success : false,
                     message : "Email allready exits !!!" 
                 });
@@ -36,23 +38,69 @@ const register = async(req,res) => {
             message:"User Created Succesfully !!!"
         })
     } catch (error) {
-        res.status(404).json({
+        console.log("Error Encountered !!! ",error.message);
+        return res.status(404).json({
             success : false,
             message : "Error Encountered !!!"
         })
-        console.log("Error Encountered !!! ");
     }
 }
 
 const login = async(req,res) => {
     try {
 
+        const { email , password } = req.body;
+        
+        let user = await User.findOne({email});
+
+        if(!user) {
+            return res.status(401).json({
+                success:false,
+                messgae : "User is not registered "
+            });
+        }
+
+        const payload = {
+            email : user.email,
+            id : user.id,
+            role : user.role,
+        };
+
+        if(await bcrypt.compare(password,user.password)) {
+            let token = jwt.sign(payload , process.env.JWT_SECRET_TOKEN,{
+                            expiresIn : "2h",
+                        });
+
+            user = user.toObject();
+            user.token = token;
+            console.log("token",token);
+            user.password = undefined;
+
+            options = {
+                expiresIn : new Date( Date.now() + 3 * 24 * 60 * 60 * 1000 ),
+                httpOnly : true,
+            };
+
+            res.cookie("token",token,options).status(200).json({
+                success:true,
+                token,
+                user,
+                messages:"User Logged In Succesfully",
+            })
+
+        } else {
+            return res.status(401).json({
+                success:false,
+                messgae : "Incorrect Password."
+            });
+        }
+
     } catch (error) {
+        console.log("Error Encountered !!! ",error.message);
         res.status(404).json({
             success : false,
-            message : "Error Encountered !!!"
+            message : "Login Failure !!!"
         })
-        console.log("Error Encountered !!! ");
     }
 }
 
