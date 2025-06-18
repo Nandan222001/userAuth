@@ -73,7 +73,7 @@ const login = async(req,res) => {
 
             user = user.toObject();
             user.token = token;
-            console.log("token",token);
+            console.log("tokens Bt ",token);
             user.password = undefined;
 
             options = {
